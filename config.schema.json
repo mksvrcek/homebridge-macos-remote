@@ -1,0 +1,51 @@
+{
+    "pluginAlias": "MacOSRemoteSwitch",
+    "pluginType": "accessory",
+    "singular": true,
+    "schema": {
+        "type": "object",
+        "properties": {
+            "name": {
+                "title": "Name",
+                "type": "string",
+                "required": true,
+                "description": "Choose a name for your Mac."
+            },
+            "ip": {
+                "title": "IP Address",
+                "type": "string",
+                "required": true,
+                "description": "Please use a static IP address or a proxy client like Tailscale, without this controls will be unavailable anytime the mac is on a different network."
+            },
+            "port": {
+                "title": "Port",
+                "type": "number",
+                "default": 8070,
+                "required": true,
+                "description": "Port you configured in the Mac Helper Application, please change them to match if you chose a different port do to a conflict."
+            },
+            "lock": {
+                "title": "Lock",
+                "type": "boolean",
+                "default": true,
+                "description": "This will configure a lock accessory that will allow you to lock your mac remotely, please add a \"Lock Mac\" shortcuts in the shortcuts app."
+            },
+            "shortcuts": {
+              "title": "Shortcuts",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "title": "Shortcut Name",
+                    "type": "string",
+                    "description": "Needs to be exactly the same as the name in the shortcuts app."
+                  }
+                },
+                "required": false,
+                "description": "Add's switched that allow you to trigger shortcuts on your mac."
+              }
+            }
+        }
+    }
+}
