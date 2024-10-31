@@ -42,7 +42,7 @@ function MacOSRemoteSwitch(log, config) {
     this._service.getCharacteristic(Characteristic.LockTargetState)
         .on('set', this._setValue.bind(this));
 
-    this._service.setCharacteristic(Characteristic.LockTargetState, 0);
+    this._service.setCharacteristic(Characteristic.LockTargetState, 1);
   }
 
   if (this.pollingrate > 0) {
@@ -101,6 +101,8 @@ MacOSRemoteSwitch.prototype._updateState = function() {
 }
 
 MacOSRemoteSwitch.prototype._setValue = function(value, callback) {
+  this._service.setCharacteristic(Characteristic.LockCurrentState, value);
+  
   if (value == 1) {
     // this._service.setCharacteristic(Characteristic.LockTargetState, 0);
   } else {
