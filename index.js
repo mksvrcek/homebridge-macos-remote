@@ -101,11 +101,10 @@ MacOSRemoteSwitch.prototype._updateState = function() {
 }
 
 MacOSRemoteSwitch.prototype._setValue = function(value, callback) {
-  this._service.setCharacteristic(Characteristic.LockCurrentState, value);
-  
-  if (value == 1) {
-    // this._service.setCharacteristic(Characteristic.LockTargetState, 0);
-  } else {
+
+  if (value == 0) {
+    this._service.setCharacteristic(Characteristic.LockCurrentState, value);
+
     const options = {
       hostname: this.ip,
       port: this.port,
