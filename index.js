@@ -18,7 +18,7 @@ function MacOSRemoteSwitch(log, config) {
   this.ip = config.ip;
   this.port = config.port;
   this.disableLogging = false;
-  this.pollingrate = 10000;
+  this.pollingrate = 20000;
 
   this.lock = config.lock || true;
   if (this.lock) {
@@ -75,7 +75,11 @@ MacOSRemoteSwitch.prototype._updateState = function() {
           const response = JSON.parse(data);
           const status = response.status;
           // this._service.setCharacteristic(Characteristic.StatusFault, 0);
-          this._service.setCharacteristic(Characteristic.LockTargetState, status ? 1 : 0);
+          if (status) {
+            this._service.setCharacteristic(Characteristic.LockTargetState, 1);
+          } else {
+            this._service.setCharacteristic(Characteristic.LockTargetState, 0);
+          }
         } catch (e) {
           this.log('Error parsing response:', e);
         }
@@ -100,7 +104,6 @@ MacOSRemoteSwitch.prototype._setValue = function(value, callback) {
   if (value == 1) {
     // this._service.setCharacteristic(Characteristic.LockTargetState, 0);
   } else {
-    this._service.setCharacteristic(Characteristic.LockTargetState, 1);
     const options = {
       hostname: this.ip,
       port: this.port,
@@ -108,8 +111,11 @@ MacOSRemoteSwitch.prototype._setValue = function(value, callback) {
       method: 'GET'
     };
   
-    const req = this.http.request(options, (res) => {});
+    const req = this.http.request(options, (res) => {
+      this.log(res.statusCode)
+    });
   }
+
   callback();
 }
 
