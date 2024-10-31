@@ -8,7 +8,7 @@ module.exports = function(homebridge) {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
   HomebridgeAPI = homebridge;
-  homebridge.registerAccessory("homebridge-macos-remote", "MacOSRemoteSwitch", DummySwitch);
+  homebridge.registerAccessory("homebridge-macos-remote", "MacOSRemoteSwitch", MacOSRemoteSwitch);
 }
 
 
