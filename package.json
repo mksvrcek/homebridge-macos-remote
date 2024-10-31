@@ -8,10 +8,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/--"
+    "url": "git://github.com/mksvrcek/homebridge-macos-remote"
   },
   "bugs": {
-    "url": "http://github.com/--/issues"
+    "url": "http://github.com/mksvrcek/homebridge-macos-remote/issues"
   },
   "engines": {
     "node": ">=0.12.0",
