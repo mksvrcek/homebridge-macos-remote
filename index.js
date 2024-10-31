@@ -102,7 +102,7 @@ MacOSRemoteSwitch.prototype._updateState = function() {
 
 MacOSRemoteSwitch.prototype._setValue = function(value, callback) {
 
-  if (value == 0) {
+  if (value == 1) {
     this._service.setCharacteristic(Characteristic.LockCurrentState, value);
 
     const options = {
