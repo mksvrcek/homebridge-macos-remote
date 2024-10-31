@@ -62,7 +62,7 @@ MacOSRemoteSwitch.prototype._updateState = function() {
     method: 'GET'
   };
 
-  const req = http.request(options, (res) => {
+  const req = this.http.request(options, (res) => {
     let data = '';
 
     res.on('data', (chunk) => {
