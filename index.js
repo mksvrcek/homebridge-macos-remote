@@ -18,6 +18,7 @@ function MacOSRemoteSwitch(log, config) {
   this.ip = config.ip;
   this.port = config.port;
   this.disableLogging = false;
+  this.pollingrate = 10000;
 
   this.lock = config.lock || true;
   if (this.lock) {
@@ -34,6 +35,7 @@ function MacOSRemoteSwitch(log, config) {
   
   this.cacheDirectory = HomebridgeAPI.user.persistPath();
   this.storage = require('node-persist');
+  this.http = require('http');
   this.storage.initSync({dir:this.cacheDirectory, forgiveParseErrors: true});
   
   if (this.lock) {
@@ -42,10 +44,56 @@ function MacOSRemoteSwitch(log, config) {
 
     this._service.setCharacteristic(Characteristic.LockTargetState, 0);
   }
+
+  if (this.pollingrate > 0) {
+    setInterval(this._updateState.bind(this), this.pollingrate);
+  }
 }
 
 MacOSRemoteSwitch.prototype.getServices = function() {
   return [this.informationService, this._service];
+}
+
+MacOSRemoteSwitch.prototype._updateState = function() {
+  const options = {
+    hostname: this.ip,
+    port: this.port,
+    path: '/islocked',
+    method: 'GET'
+  };
+
+  const req = http.request(options, (res) => {
+    let data = '';
+
+    res.on('data', (chunk) => {
+      data += chunk;
+    });
+
+    res.on('end', () => {
+      if (res.statusCode === 200) {
+        try {
+          const response = JSON.parse(data);
+          const status = response.status;
+          this._service.setCharacteristic(Characteristic.StatusFault, 0);
+          this._service.setCharacteristic(Characteristic.LockTargetState, status ? 1 : 0);
+        } catch (e) {
+          this.log('Error parsing response:', e);
+        }
+      } else if (res.statusCode === 404) {
+        this._service.setCharacteristic(Characteristic.LockTargetState, 0);
+        this._service.setCharacteristic(Characteristic.StatusFault, 1);
+        this.log('Error 404: Not Found');
+      } else {
+        this.log('Error:', res.statusCode);
+      }
+    });
+  });
+
+  req.on('error', (e) => {
+    this.log('Request error:', e);
+  });
+
+  req.end();
 }
 
 MacOSRemoteSwitch.prototype._setValue = function(value, callback) {
@@ -54,6 +102,7 @@ MacOSRemoteSwitch.prototype._setValue = function(value, callback) {
   } else {
     this._service.setCharacteristic(Characteristic.LockTargetState, 1);
   }
+  callback();
 }
 
 
