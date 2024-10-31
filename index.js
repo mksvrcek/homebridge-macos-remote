@@ -74,14 +74,14 @@ MacOSRemoteSwitch.prototype._updateState = function() {
         try {
           const response = JSON.parse(data);
           const status = response.status;
-          this._service.setCharacteristic(Characteristic.StatusFault, 0);
+          // this._service.setCharacteristic(Characteristic.StatusFault, 0);
           this._service.setCharacteristic(Characteristic.LockTargetState, status ? 1 : 0);
         } catch (e) {
           this.log('Error parsing response:', e);
         }
       } else if (res.statusCode === 404) {
         this._service.setCharacteristic(Characteristic.LockTargetState, 0);
-        this._service.setCharacteristic(Characteristic.StatusFault, 1);
+        // this._service.setCharacteristic(Characteristic.StatusFault, 1);
         this.log('Error 404: Not Found');
       } else {
         this.log('Error:', res.statusCode);
@@ -98,9 +98,17 @@ MacOSRemoteSwitch.prototype._updateState = function() {
 
 MacOSRemoteSwitch.prototype._setValue = function(value, callback) {
   if (value == 1) {
-    this._service.setCharacteristic(Characteristic.LockTargetState, 0);
+    // this._service.setCharacteristic(Characteristic.LockTargetState, 0);
   } else {
     this._service.setCharacteristic(Characteristic.LockTargetState, 1);
+    const options = {
+      hostname: this.ip,
+      port: this.port,
+      path: '/shortcut/MACLOCK',
+      method: 'GET'
+    };
+  
+    const req = this.http.request(options, (res) => {});
   }
   callback();
 }
