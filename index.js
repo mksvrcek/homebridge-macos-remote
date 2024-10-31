@@ -8,7 +8,7 @@ module.exports = function(homebridge) {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
   HomebridgeAPI = homebridge;
-  homebridge.registerAccessory("homebridge-macos-remote", "MacOSRemoteSwitch", MacOSRemoteSwitch);
+  homebridge.registerAccessory("@theproductroadmap/homebridge-macos-remote", "MacOSRemoteSwitch", MacOSRemoteSwitch);
 }
 
 
@@ -103,8 +103,6 @@ MacOSRemoteSwitch.prototype._updateState = function() {
 MacOSRemoteSwitch.prototype._setValue = function(value, callback) {
 
   if (value == 1) {
-    this._service.setCharacteristic(Characteristic.LockCurrentState, value);
-
     const options = {
       hostname: this.ip,
       port: this.port,
@@ -114,8 +112,21 @@ MacOSRemoteSwitch.prototype._setValue = function(value, callback) {
   
     const req = this.http.request(options, (res) => {
       this.log(res.statusCode)
+      
+      res.on('end', () => {
+        this.log('Connection Ended');
+      });
     });
+    
+    req.on('error', (e) => {
+        this.log('Request error:', e);
+      });
+    
+      req.end();
   }
+  
+  this._service.setCharacteristic(Characteristic.LockCurrentState, value);
+
 
   callback();
 }
