@@ -8,7 +8,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/mksvrcek/homebridge-macos-remote"
+    "url": "git://github.com/mksvrcek/homebridge-macos-remote.git"
   },
   "bugs": {
     "url": "http://github.com/mksvrcek/homebridge-macos-remote/issues"
