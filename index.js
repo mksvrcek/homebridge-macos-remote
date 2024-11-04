@@ -31,12 +31,12 @@ class MacRemotePlatform {
                 
                 if (!this.accessories.find(accessory => accessory.UUID === uuid)) {
                       const platform = new api.platformAccessory(computer.name, uuid);
-                      api.registerPlatformAccessories('@theproductroadmap/homebridge-macos-remote', config.name, [platform])
+                      api.registerPlatformAccessories('@theproductroadmap/homebridge-macos-remote', config.name + " platform", [platform])
                       this.accessories.push(platform)
-                      this.connections[computer.id] = new MacRemoteControl(config.id, this.log, this.config, this.api, platform)
+                      this.connections[computer.id] = new MacRemoteControl(config.id, this.log, computer, this.api, platform)
                     } else {
                       let platform = this.accessories.find(accessory => accessory.UUID === uuid);
-                      this.connections[computer.id] = new MacRemoteControl(config.id, this.log, this.config, this.api, platform)
+                      this.connections[computer.id] = new MacRemoteControl(config.id, this.log, computer, this.api, platform)
                 }
             });
             
@@ -84,15 +84,26 @@ class MacRemoteControl {
         this.config = config;
         this.api = api;
         this.platform = platform;
+        this.Service = api.hap.Service;
+        this.Characteristic = api.hap.Characteristic;
         
-        
-        this.lockRepresentative = platform.getService(config.name)
+        this.log("hey")
         if (this.config.lock) {
-            if (!this.timerRepresentative) {
-              log.debug("Created service: " + 'Dummy-Timer-' + config.name.replace(/\s/g, '-'))
-              this.timerRepresentative = platform.addService(api.hap.Service.LockMechanism, config.name, 'lock')
+            this.lockRepresentative = platform.getService(config.name)
+            this.log("Lock enabled")
+            if (!this.lockRepresentative) {
+              this.log("Created service: " + 'Dummy-Timer-' + config.name.replace(/\s/g, '-'))
+              this.lockRepresentative = platform.addService(api.hap.Service.LockMechanism, config.name, 'lock')
             }
         }
+        
+        if (this.config.lock) {
+            this.lockRepresentative.getCharacteristic(this.Characteristic.LockTargetState)
+                .on('set', this._setValue.bind(this));
+        
+            this.lockRepresentative.setCharacteristic(this.Characteristic.LockCurrentState, 0);
+            this.lockRepresentative.setCharacteristic(this.Characteristic.LockTargetState, 0);
+          }
     }
 }
 
@@ -104,13 +115,46 @@ MacRemoteControl.prototype.updateConnection = function(newWs) {
 }
 
 MacRemoteControl.prototype._handleMessage = function(message) {
-    this.debug("Received:", message)
+    this.log.debug("Received:", message)
+    
+      this.ws.send(`received:${message}`);
+        
+      if (message.includes(":")) {
+          const [command, ...args] = `${message}`.split(':');
+          if (command === 'mac-lock') {
+            const lockState = args[0] === 'true';
+            this.isLocked = lockState;
+            this.lockRepresentative.setCharacteristic(this.Characteristic.LockCurrentState, lockState ? 1 : 0);
+            this.lockRepresentative.setCharacteristic(this.Characteristic.LockTargetState, lockState ? 1 : 0);
+          }
+      }
+}
+
+MacRemoteControl.prototype.triggerShortcut = function(name) {
+    this.log("Running shortcut:", name)
+    this.ws.send(`shortcut:${name}`)
+}
+
+MacRemoteControl.prototype._setValue = function(value, callback) {
+    if (value == 1) {
+    //     if (this.triggerShortcut) {
+            this.triggerShortcut("MACLOCK");
+            // this.lockRepresentative.setCharacteristic(this.Characteristic.LockCurrentState, value);
+            this.lockRepresentative.getCharacteristic(this.Characteristic.LockCurrentState)
+                .updateValue(value);
+    //     }
+    } else {
+        // this.lockRepresentative.setCharacteristic(this.Characteristic.LockTargetState, 0);
+        // this.lockRepresentative.updateValue(0);
+    }
+    
+    callback();
 }
 
 
-
-
-
+MacRemoteControl.prototype.getServices = function() {
+  return [this.informationService, this._service];
+}
 
 
 
