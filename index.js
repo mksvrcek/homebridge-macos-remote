@@ -73,11 +73,11 @@ MacOSRemoteSwitch.prototype._wsserver = function() {
     });
 
     ws.on('close', () => {
-      console.log('Client disconnected');
+      this.log('Client disconnected');
     });
   });
 
-  console.log('WebSocket server running on ws://localhost:8070');
+  this.log('WebSocket server running on ws://localhost:8070');
 }
 
 MacOSRemoteSwitch.prototype._setValue = function(value, callback) {
