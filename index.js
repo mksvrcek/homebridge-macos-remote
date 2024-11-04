@@ -31,10 +31,10 @@ function MacOSRemoteSwitch(log, config) {
       .setCharacteristic(Characteristic.FirmwareRevision, HomebridgeDummyVersion)
       .setCharacteristic(Characteristic.SerialNumber, 'MACOS-' + this.name.replace(/\s/g, '-'));
   
-  this.cacheDirectory = HomebridgeAPI.user.persistPath();
-  this.storage = require('node-persist');
-  this.http = require('http');
-  this.storage.initSync({dir:this.cacheDirectory, forgiveParseErrors: true});
+  // this.cacheDirectory = HomebridgeAPI.user.persistPath();
+  // this.storage = require('node-persist');
+  // this.http = require('http');
+  // this.storage.initSync({dir:this.cacheDirectory, forgiveParseErrors: true});
   
   if (this.lock) {
     this._service.getCharacteristic(Characteristic.LockTargetState)
@@ -81,19 +81,19 @@ MacOSRemoteSwitch.prototype._wsserver = function() {
 }
 
 MacOSRemoteSwitch.prototype._setValue = function(value, callback) {
-  if (value == 1) {
-    // this._service.setCharacteristic(Characteristic.LockTargetState, 0);
-  } else {
-    const options = {
-      hostname: this.ip,
-      port: this.port,
-      path: '/shortcut/MACLOCK',
-      method: 'GET'
-    };
+  // if (value == 1) {
+  //   // this._service.setCharacteristic(Characteristic.LockTargetState, 0);
+  // } else {
+  //   const options = {
+  //     hostname: this.ip,
+  //     port: this.port,
+  //     path: '/shortcut/MACLOCK',
+  //     method: 'GET'
+  //   };
   
-    const req = this.http.request(options, (res) => { });
-    this._service.setCharacteristic(Characteristic.LockTargetState, 1);
-  }
+  //   const req = this.http.request(options, (res) => { });
+  //   this._service.setCharacteristic(Characteristic.LockTargetState, 1);
+  // }
   callback();
 }
 
