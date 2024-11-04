@@ -18,8 +18,7 @@
     "homebridge": ">=0.2.0"
   },
   "dependencies": {
-    "http": "^0.0.1-security",
-    "node-persist": "^2.1.0"
+    "ws": "^8.18.0"
   },
   "publishConfig": {
     "access": "public"

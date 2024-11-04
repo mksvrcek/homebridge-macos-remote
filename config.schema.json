@@ -11,12 +11,6 @@
                 "required": true,
                 "description": "Choose a name for your Mac."
             },
-            "ip": {
-                "title": "IP Address",
-                "type": "string",
-                "required": true,
-                "description": "Please use a static IP address or a proxy client like Tailscale, without this controls will be unavailable anytime the mac is on a different network."
-            },
             "port": {
                 "title": "Port",
                 "type": "number",

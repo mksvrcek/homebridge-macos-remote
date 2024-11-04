@@ -8,17 +8,15 @@ module.exports = function(homebridge) {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
   HomebridgeAPI = homebridge;
-  homebridge.registerAccessory("@theproductroadmap/homebridge-macos-remote", "MacOSRemoteSwitch", MacOSRemoteSwitch);
+  homebridge.registerAccessory("homebridge-macos-remote", "MacOSRemoteSwitch", MacOSRemoteSwitch);
 }
 
 
 function MacOSRemoteSwitch(log, config) {
   this.log = log;
   this.name = config.name;
-  this.ip = config.ip;
   this.port = config.port;
   this.disableLogging = false;
-  this.pollingrate = 20000;
 
   this.lock = config.lock || true;
   if (this.lock) {
@@ -42,67 +40,50 @@ function MacOSRemoteSwitch(log, config) {
     this._service.getCharacteristic(Characteristic.LockTargetState)
         .on('set', this._setValue.bind(this));
 
-    this._service.setCharacteristic(Characteristic.LockTargetState, 1);
+    this._service.setCharacteristic(Characteristic.LockTargetState, 0);
   }
 
-  if (this.pollingrate > 0) {
-    setInterval(this._updateState.bind(this), this.pollingrate);
-  }
+  this._wsserver.bind(this)
 }
 
 MacOSRemoteSwitch.prototype.getServices = function() {
   return [this.informationService, this._service];
 }
 
-MacOSRemoteSwitch.prototype._updateState = function() {
-  const options = {
-    hostname: this.ip,
-    port: this.port,
-    path: '/islocked',
-    method: 'GET'
-  };
+MacOSRemoteSwitch.prototype._wsserver = function() {
+  var isLocked = false;
 
-  const req = this.http.request(options, (res) => {
-    let data = '';
+  const WebSocket = require('ws');
 
-    res.on('data', (chunk) => {
-      data += chunk;
-    });
+  const wss = new WebSocket.Server({ port: 8070 });
 
-    res.on('end', () => {
-      if (res.statusCode === 200) {
-        try {
-          const response = JSON.parse(data);
-          const status = response.status;
-          // this._service.setCharacteristic(Characteristic.StatusFault, 0);
-          if (status) {
-            this._service.setCharacteristic(Characteristic.LockTargetState, 1);
-          } else {
-            this._service.setCharacteristic(Characteristic.LockTargetState, 0);
-          }
-        } catch (e) {
-          this.log('Error parsing response:', e);
-        }
-      } else if (res.statusCode === 404) {
-        this._service.setCharacteristic(Characteristic.LockTargetState, 0);
-        // this._service.setCharacteristic(Characteristic.StatusFault, 1);
-        this.log('Error 404: Not Found');
-      } else {
-        this.log('Error:', res.statusCode);
+  wss.on('connection', ws => {
+    console.log('Client connected');
+
+    ws.on('message', message => {
+      const [command, ...args] = message.split(':');
+      if (command === 'mac-lock') {
+        const lockState = args[0] === 'true';
+        isLocked = lockState;
+        this._service.setCharacteristic(Characteristic.LockTargetState, lockState ? 1 : 0);
       }
+
+      console.log(`Received: ${message}`);
+      ws.send(`received:${message}`);
+    });
+
+    ws.on('close', () => {
+      console.log('Client disconnected');
     });
   });
 
-  req.on('error', (e) => {
-    this.log('Request error:', e);
-  });
-
-  req.end();
+  console.log('WebSocket server running on ws://localhost:8070');
 }
 
 MacOSRemoteSwitch.prototype._setValue = function(value, callback) {
-
   if (value == 1) {
+    // this._service.setCharacteristic(Characteristic.LockTargetState, 0);
+  } else {
     const options = {
       hostname: this.ip,
       port: this.port,
@@ -110,24 +91,9 @@ MacOSRemoteSwitch.prototype._setValue = function(value, callback) {
       method: 'GET'
     };
   
-    const req = this.http.request(options, (res) => {
-      this.log(res.statusCode)
-      
-      res.on('end', () => {
-        this.log('Connection Ended');
-      });
-    });
-    
-    req.on('error', (e) => {
-        this.log('Request error:', e);
-      });
-    
-      req.end();
+    const req = this.http.request(options, (res) => { });
+    this._service.setCharacteristic(Characteristic.LockTargetState, 1);
   }
-  
-  this._service.setCharacteristic(Characteristic.LockCurrentState, value);
-
-
   callback();
 }
 
