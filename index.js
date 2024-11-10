@@ -62,6 +62,7 @@ class MacRemotePlatform {
             
                 ws.on('close', () => {
                   this.log('Client disconnected');
+                  
                 });
               });
             
@@ -86,13 +87,57 @@ class MacRemoteControl {
         this.platform = platform;
         this.Service = api.hap.Service;
         this.Characteristic = api.hap.Characteristic;
+          
+          
+        if (Array.isArray(this.config.shortcuts) && this.config.shortcuts.length > 0) {
+          this.config.shortcuts.forEach((shortcut) => {
+              
+              const uuid = this.api.hap.uuid.generate(shortcut.name);
+              var ss = new this.Service.Outlet(shortcut.name, uuid, shortcut.name)
+              
+              var shortcutSwitch = platform.getService(ss)
+              if (!shortcutSwitch) {
+                  this.log("Creating Shortcut: " + shortcut.name)
+                //   shortcutSwitch = platform.addService(this.Service.Outlet, shortcut.name, shortcut.name)
+                shortcutSwitch = platform.addService(ss)
+              }
+              
+              shortcutSwitch.setCharacteristic(this.Characteristic.ConfiguredName, shortcut.name);
+            //   shortcutSwitch.removeCharacteristic(this.Characteristic.Name)
+            //   shortcutSwitch.setCharacteristic(this.Characteristic.Name, "mksvrcek")
+            //   this.log(shortcutSwitch.getCharacteristic(this.Characteristic.Name).value)
+            //   shortcutSwitch.addCharacteristic(this.Characteristic.Name)
+            //         .updateValue("yofdasfasd")
+                    
+                // shortcutSwitch.updateCharacteristic(this.Characteristic.Name, "lallala")
+                // this.log(shortcutSwitch.getCharacteristic(this.Characteristic.Name))
+              
+              shortcutSwitch.getCharacteristic(this.Characteristic.On)
+                // .onGet(this.handleOnGet.bind(this))
+                .on('get', (callback) => {
+                    const value = shortcutSwitch.getCharacteristic(this.Characteristic.On).value;
+                    callback(null, value);
+                  })
+                .onSet(function (value) {
+                    if (value == true) {
+                        this.triggerShortcut(shortcut.name)
+                        var timer = setTimeout(function() {
+                            this.log("reset")
+                            shortcutSwitch.setCharacteristic(this.Characteristic.On, false)
+                        }.bind(this), 1000);
+                    } else {
+                        shortcutSwitch.getCharacteristic(this.Characteristic.On)
+                                .updateValue(false)
+                    }
+                }.bind(this));
+          });
+        }
         
-        this.log("hey")
         if (this.config.lock) {
             this.lockRepresentative = platform.getService(config.name)
             this.log("Lock enabled")
             if (!this.lockRepresentative) {
-              this.log("Created service: " + 'Dummy-Timer-' + config.name.replace(/\s/g, '-'))
+              this.log("Created service: " + '' + config.name.replace(/\s/g, '-'))
               this.lockRepresentative = platform.addService(api.hap.Service.LockMechanism, config.name, 'lock')
             }
         }
@@ -112,6 +157,10 @@ MacRemoteControl.prototype.updateConnection = function(newWs) {
     this.log("New connection for ID:", this.id)
     this.ws = newWs;
     this.ws.on('message', (message) => this._handleMessage(message));
+    this.ws.on('close', () => {
+        this.ws = null;
+        this.lockRepresentative.updateCharacteristic(this.Characteristic.LockCurrentState, new Error('A placeholder error object'));
+    })
 }
 
 MacRemoteControl.prototype._handleMessage = function(message) {
@@ -121,7 +170,7 @@ MacRemoteControl.prototype._handleMessage = function(message) {
         
       if (message.includes(":")) {
           const [command, ...args] = `${message}`.split(':');
-          if (command === 'mac-lock') {
+          if (command === 'mac-lock' && this.config.lock) {
             const lockState = args[0] === 'true';
             this.isLocked = lockState;
             this.lockRepresentative.setCharacteristic(this.Characteristic.LockCurrentState, lockState ? 1 : 0);
@@ -131,21 +180,28 @@ MacRemoteControl.prototype._handleMessage = function(message) {
 }
 
 MacRemoteControl.prototype.triggerShortcut = function(name) {
-    this.log("Running shortcut:", name)
-    this.ws.send(`shortcut:${name}`)
+    if (this.ws) {
+        this.log("Running shortcut:", name)
+        this.ws.send(`shortcut:${name}`)
+    }
 }
 
 MacRemoteControl.prototype._setValue = function(value, callback) {
-    if (value == 1) {
-    //     if (this.triggerShortcut) {
-            this.triggerShortcut("MACLOCK");
-            // this.lockRepresentative.setCharacteristic(this.Characteristic.LockCurrentState, value);
-            this.lockRepresentative.getCharacteristic(this.Characteristic.LockCurrentState)
-                .updateValue(value);
-    //     }
+    if (this.ws != null) {
+        if (value == 1) {
+        //     if (this.triggerShortcut) {
+                this.triggerShortcut("MACLOCK");
+                // this.lockRepresentative.setCharacteristic(this.Characteristic.LockCurrentState, value);
+                // this.lockRepresentative.getCharacteristic(this.Characteristic.LockCurrentState)
+                //     .updateValue(value);
+        //     }
+        } else {
+            this.lockRepresentative.updateCharacteristic(this.Characteristic.LockTargetState, 0);
+            // this.lockRepresentative.updateValue(0);
+        }
     } else {
-        // this.lockRepresentative.setCharacteristic(this.Characteristic.LockTargetState, 0);
-        // this.lockRepresentative.updateValue(0);
+        this.lockRepresentative.updateCharacteristic(this.Characteristic.LockCurrentState, new Error('A placeholder error object'));
+        this.log("Mac connection not active")
     }
     
     callback();
